@@ -111,11 +111,11 @@ export function useSocket() {
       }
     }
 
-    socket.on('pipeline_event', handlePipelineEvent)
+    socket.on('pipeline', handlePipelineEvent)
 
     // 返回 cleanup 函数
     return () => {
-      socket.off('pipeline_event', handlePipelineEvent)
+      socket.off('pipeline', handlePipelineEvent)
     }
   }
 
