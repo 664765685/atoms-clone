@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@monaco-editor/loader':
+        specifier: ^1.7.0
+        version: 1.7.0
       axios:
         specifier: ^1.15.2
         version: 1.15.2
@@ -106,6 +109,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha1-2xXWeByTHzolGj2sOVAcmKYIL9A=, tarball: http://r.npm.sankuai.com/@jridgewell/trace-mapping/download/@jridgewell/trace-mapping-0.3.31.tgz}
+
+  '@monaco-editor/loader@1.7.0':
+    resolution: {integrity: sha1-lnqqRgGxnpE2J2iN/oFZ1XVJ55M=, tarball: http://r.npm.sankuai.com/@monaco-editor/loader/download/@monaco-editor/loader-1.7.0.tgz}
 
   '@napi-rs/wasm-runtime@1.1.4':
     resolution: {integrity: sha1-pGu/7cKXUbcXDF0jvB2O6MfjweE=, tarball: http://r.npm.sankuai.com/@napi-rs/wasm-runtime/download/@napi-rs/wasm-runtime-1.1.4.tgz}
@@ -921,6 +927,9 @@ packages:
     resolution: {integrity: sha1-837I3cSrmOlgDByewySoxI13KlM=, tarball: http://r.npm.sankuai.com/speakingurl/download/speakingurl-14.0.1.tgz}
     engines: {node: '>=0.10.0'}
 
+  state-local@1.0.7:
+    resolution: {integrity: sha1-2lAhHQfwV0jVMAm+5GMHo32zhtU=, tarball: http://r.npm.sankuai.com/state-local/download/state-local-1.0.7.tgz}
+
   sucrase@3.35.1:
     resolution: {integrity: sha1-RhnqUDk/6L0K5QccJqvZsuNGv+E=, tarball: http://r.npm.sankuai.com/sucrase/download/sucrase-3.35.1.tgz}
     engines: {node: '>=16 || 14 >=14.17'}
@@ -1146,6 +1155,10 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@monaco-editor/loader@1.7.0':
+    dependencies:
+      state-local: 1.0.7
 
   '@napi-rs/wasm-runtime@1.1.4(@emnapi/core@1.9.2)(@emnapi/runtime@1.10.0)':
     dependencies:
@@ -1891,6 +1904,8 @@ snapshots:
   source-map-js@1.2.1: {}
 
   speakingurl@14.0.1: {}
+
+  state-local@1.0.7: {}
 
   sucrase@3.35.1:
     dependencies:

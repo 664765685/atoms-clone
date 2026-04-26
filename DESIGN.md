@@ -1,271 +1,180 @@
-# DESIGN.md — 前端 VI 规范
+# DESIGN.md — 前端 VI/UX 规范
 
-> 版本：v0.1 · 日期：2026-04-26
-> ⚠️ 所有前端 Agent 必须严格遵守本文件。禁止硬编码颜色值和间距。
-
----
-
-## 一、设计风格
-
-**深色极简风** — 参考 Linear / GitHub Copilot / Vercel 暗色主题
-
-核心原则：
-- 背景深暗，内容区用层次感区分，而非用线框
-- 大量留白，文字密度克制
-- 强调色单一（蓝紫色系），不堆砌颜色
-- 动画轻量、过渡自然（150-200ms）
+> 所有前端 Agent 必须读这个文件，严格遵守以下规范，禁止硬编码颜色/间距/字号。
 
 ---
 
-## 二、色彩系统
+## 设计原则
 
-使用 TailwindCSS CSS 变量，全部在 `tailwind.config.js` 中定义，**禁止在组件内直接写颜色值**。
+1. **Token 化** — 所有颜色/间距/字号只允许使用 Tailwind 工具类，禁止 `style="color: #xxx"` 硬编码
+2. **暗色优先** — 全局深色主题，`bg-gray-950` 作为最底层背景
+3. **信息密度适中** — 代码类产品，用户需要同时看多块信息，不做过度留白
+4. **状态可见** — 所有异步操作（生成中/推送中）必须有明确的视觉反馈
+5. **无"AI 味儿"** — 不用霓虹渐变、不用奇怪的 emoji 装饰、不用花哨动画
 
-### 背景色层次
+---
 
+## 色彩系统（Tailwind 类名映射）
+
+| 语义 | Tailwind 类 | 用途 |
+|------|------------|------|
+| 页面背景 | `bg-gray-950` | 最外层容器 |
+| 卡片背景 | `bg-gray-900` | 卡片/面板 |
+| 边框 | `border-gray-800` | 分割线、卡片边框 |
+| 主文字 | `text-gray-100` | 标题、主内容 |
+| 次要文字 | `text-gray-400` | 标签、说明、时间戳 |
+| 占位文字 | `text-gray-600` | placeholder |
+| 主色调 | `text-violet-400` / `bg-violet-600` | 主按钮、高亮、选中态 |
+| 成功 | `text-emerald-400` | done 状态、成功提示 |
+| 警告 | `text-yellow-400` | 警告、QA issue |
+| 错误 | `text-red-400` | failed 状态、错误提示 |
+| 运行中 | `text-blue-400` | running 状态、流式输出光标 |
+| Agent PM | `text-violet-400` | PM Agent 标识色 |
+| Agent Architect | `text-blue-400` | Architect Agent 标识色 |
+| Agent Engineer | `text-emerald-400` | Engineer Agent 标识色 |
+| Agent QA | `text-yellow-400` | QA Agent 标识色 |
+
+---
+
+## 间距系统
+
+- 页面最大宽度：`max-w-7xl mx-auto px-6`
+- 卡片内边距：`p-6`
+- 元素间间距：`gap-4`（同级），`gap-6`（段落间）
+- 小标签间距：`gap-2`
+
+---
+
+## 字体规范
+
+| 层级 | Tailwind 类 |
+|------|------------|
+| 页面标题 | `text-2xl font-semibold text-gray-100` |
+| 卡片标题 | `text-lg font-medium text-gray-200` |
+| 正文 | `text-sm text-gray-300` |
+| 代码/路径 | `font-mono text-sm text-gray-300` |
+| 标签/徽章 | `text-xs font-medium` |
+
+代码区域必须使用 `font-mono`（Monaco Editor 用 `fontFamily: 'JetBrains Mono, Fira Code, monospace'`）。
+
+---
+
+## 组件规范
+
+### 按钮
+
+```html
+<!-- 主按钮 -->
+<button class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-lg transition-colors">
+  提交
+</button>
+
+<!-- 次要按钮 -->
+<button class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg border border-gray-700 transition-colors">
+  取消
+</button>
+
+<!-- 危险按钮 -->
+<button class="px-4 py-2 bg-red-900/30 hover:bg-red-900/50 text-red-400 text-sm font-medium rounded-lg border border-red-800 transition-colors">
+  删除
+</button>
 ```
-bg-base       #0d0d0f   最底层背景（页面背景）
-bg-surface    #16161a   卡片/面板背景
-bg-elevated   #1e1e24   悬浮层/弹窗背景
-bg-overlay    #26262e   hover 状态背景
+
+### 状态徽章
+
+```html
+<!-- pending -->
+<span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-800 text-gray-400">Pending</span>
+<!-- running -->
+<span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-900/40 text-blue-400">Running</span>
+<!-- done -->
+<span class="px-2 py-0.5 text-xs font-medium rounded bg-emerald-900/40 text-emerald-400">Done</span>
+<!-- failed -->
+<span class="px-2 py-0.5 text-xs font-medium rounded bg-red-900/40 text-red-400">Failed</span>
 ```
 
-### 文字色
+### Agent 步骤进度条
 
-```
-text-primary    #f0f0f5   主要文字（标题、正文）
-text-secondary  #8b8b9e   次要文字（描述、标签）
-text-muted      #52525e   弱化文字（时间戳、占位符）
-text-disabled   #3a3a46   禁用状态
-```
+每个 Agent 一个步骤卡片，三种状态：等待 / 进行中 / 完成
 
-### 强调色（品牌色）
-
-```
-accent          #7c6af7   主强调色（按钮、链接、激活态）
-accent-hover    #6b5ae6   hover 状态
-accent-light    #7c6af720 透明强调色（背景高亮）
+```html
+<!-- 进行中 -->
+<div class="flex items-start gap-3 p-4 rounded-lg bg-blue-950/30 border border-blue-800/50">
+  <div class="w-2 h-2 mt-2 rounded-full bg-blue-400 animate-pulse"></div>
+  <div>
+    <div class="text-sm font-medium text-blue-400">PM Agent</div>
+    <div class="text-xs text-gray-400 mt-0.5">分析需求，拆解功能列表...</div>
+  </div>
+</div>
 ```
 
-### 状态色
+### 文件树节点
 
-```
-success   #34d399   绿色（完成、成功）
-warning   #fbbf24   黄色（警告）
-error     #f87171   红色（失败、错误）
-info      #60a5fa   蓝色（信息提示）
-```
-
-### 边框色
-
-```
-border-subtle   #1e1e24   极淡边框（卡片分隔）
-border-default  #2a2a35   默认边框
-border-strong   #3a3a48   强调边框（focus 状态）
+```html
+<div class="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-gray-800 cursor-pointer group">
+  <svg class="w-4 h-4 text-gray-500 group-hover:text-gray-300 flex-shrink-0">...</svg>
+  <span class="font-mono text-sm text-gray-300 truncate">src/App.vue</span>
+</div>
 ```
 
-### Tailwind 配置
+### 流式输出区域
 
-```javascript
-// tailwind.config.js
-module.exports = {
-  theme: {
-    extend: {
-      colors: {
-        base: '#0d0d0f',
-        surface: '#16161a',
-        elevated: '#1e1e24',
-        overlay: '#26262e',
-        accent: {
-          DEFAULT: '#7c6af7',
-          hover: '#6b5ae6',
-          light: '#7c6af720',
-        },
-        border: {
-          subtle: '#1e1e24',
-          default: '#2a2a35',
-          strong: '#3a3a48',
-        }
-      }
-    }
-  }
+```html
+<div class="font-mono text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+  {{ streamContent }}<span class="animate-pulse text-blue-400">▋</span>
+</div>
+```
+
+---
+
+## Monaco Editor 配置
+
+```typescript
+const monacoOptions = {
+  theme: 'vs-dark',
+  fontSize: 13,
+  fontFamily: 'JetBrains Mono, Fira Code, Consolas, monospace',
+  lineNumbers: 'on',
+  minimap: { enabled: false },
+  scrollBeyondLastLine: false,
+  readOnly: true,
+  padding: { top: 16, bottom: 16 },
+  renderLineHighlight: 'none',
 }
 ```
 
 ---
 
-## 三、字体系统
-
-```css
-/* 字体栈 */
-font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-
-/* 代码字体 */
-font-family-mono: 'JetBrains Mono', 'Fira Code', 'Menlo', monospace;
-```
-
-### 字号规范
-
-| 用途 | 类名 | 大小 | 行高 |
-|------|------|------|------|
-| 页面大标题 | `text-2xl font-semibold` | 24px | 32px |
-| 区块标题 | `text-lg font-medium` | 18px | 28px |
-| 正文 | `text-sm` | 14px | 22px |
-| 辅助文字 | `text-xs` | 12px | 18px |
-| 代码 | `text-sm font-mono` | 13px | 20px |
-
----
-
-## 四、间距规范
-
-使用 TailwindCSS 标准间距，**禁止任意值**（如 `p-[13px]`）。
-
-```
-卡片内边距：     p-4（16px）或 p-6（24px）
-区块间距：       space-y-4 / gap-4
-页面内容最大宽：  max-w-6xl mx-auto px-6
-侧边栏宽度：     w-64（256px）
-```
-
----
-
-## 五、组件库
-
-使用 **shadcn-vue**（基于 Radix Vue + TailwindCSS），在此基础上定制深色主题。
-
-```bash
-# 安装
-pnpm dlx shadcn-vue@latest init
-```
-
-选择配置：
-- Style: Default
-- Base color: Slate
-- CSS variables: Yes
-
-### 核心组件使用规范
-
-**Button**
-```vue
-<!-- 主按钮 -->
-<Button variant="default">开始生成</Button>
-
-<!-- 次要按钮 -->
-<Button variant="outline">取消</Button>
-
-<!-- 危险操作 -->
-<Button variant="destructive">删除</Button>
-
-<!-- 幽灵按钮（工具栏用）-->
-<Button variant="ghost" size="sm">查看</Button>
-```
-
-**Card**
-```vue
-<Card class="bg-surface border-border-default">
-  <CardHeader>
-    <CardTitle class="text-primary">任务标题</CardTitle>
-    <CardDescription class="text-secondary">描述信息</CardDescription>
-  </CardHeader>
-  <CardContent>...</CardContent>
-</Card>
-```
-
-**Badge（状态标签）**
-```vue
-<!-- 执行中 -->
-<Badge class="bg-accent-light text-accent border-0">Running</Badge>
-
-<!-- 完成 -->
-<Badge class="bg-success/20 text-success border-0">Done</Badge>
-
-<!-- 失败 -->
-<Badge class="bg-error/20 text-error border-0">Failed</Badge>
-```
-
----
-
-## 六、图标
-
-使用 **Lucide Vue Next**（线性图标，与深色极简风一致）。
-
-```bash
-pnpm add lucide-vue-next
-```
-
-```vue
-<script setup>
-import { Play, Settings, Download, Github, ChevronRight } from 'lucide-vue-next'
-</script>
-
-<template>
-  <Play :size="16" class="text-secondary" />
-</template>
-```
-
-图标尺寸规范：
-- 工具栏/按钮内：`:size="16"`
-- 独立图标：`:size="20"`
-- 大图标（空状态）：`:size="40"`
-
----
-
-## 七、核心页面布局规范
-
-### 整体布局
-
-```
-┌─────────────────────────────────────────┐
-│  Topbar（高度 56px，bg-surface）          │
-├──────────┬──────────────────────────────┤
-│ Sidebar  │  Main Content               │
-│ w-64     │  max-w-6xl mx-auto px-6     │
-│ bg-base  │  bg-base                    │
-│          │                             │
-└──────────┴──────────────────────────────┘
-```
-
-### 任务执行页（核心页面）布局
+## 布局结构（TaskDetailPage）
 
 ```
 ┌─────────────────────────────────────────────────┐
-│ Topbar                                           │
-├──────────────────────────────────────────────────┤
-│  Agent 进度条（4步，横向，顶部固定）                │
-├────────────────────┬────────────────────────────┤
-│  左侧：Agent 输出   │  右侧：文件树 + 代码预览     │
-│  流式打字区域       │  (执行完成后展示)            │
-│  bg-surface        │  bg-surface                │
-│  flex-1            │  w-[420px]                 │
-└────────────────────┴────────────────────────────┘
+│ Header: 任务标题 + 状态徽章 + 操作按钮            │
+├──────────────────────┬──────────────────────────┤
+│ 左栏 (40%)           │ 右栏 (60%)               │
+│                      │                          │
+│ Agent 步骤进度        │ 代码预览区               │
+│ ─────────────        │ (Monaco Editor)          │
+│ ① PM Agent ✓        │                          │
+│ ② Architect ✓       │                          │
+│ ③ Engineer 🔄       │                          │
+│   └ 流式输出区       │                          │
+│ ④ QA Agent ⏳        │                          │
+│                      │                          │
+│ ─────────────        │                          │
+│ 文件树（完成后）      │                          │
+│ └ src/               │                          │
+│   └ App.vue          │                          │
+└──────────────────────┴──────────────────────────┘
 ```
 
 ---
 
-## 八、动效规范
+## 禁止清单
 
-```css
-/* 统一过渡时长 */
-transition-duration: 150ms（hover 状态）
-transition-duration: 200ms（展开/收起）
-transition-duration: 300ms（页面切换）
-
-/* 缓动函数 */
-transition-timing-function: ease-out
-```
-
-TailwindCSS 使用：
-```
-transition-colors duration-150   // 颜色过渡
-transition-all duration-200       // 尺寸/位置过渡
-```
-
----
-
-## 九、禁止行为
-
-- ❌ 禁止硬编码颜色值（如 `style="color: #fff"`）
-- ❌ 禁止使用 TailwindCSS 任意值（如 `text-[15px]`、`mt-[7px]`）
-- ❌ 禁止混用多种图标库
-- ❌ 禁止在 dark 模式和 light 模式之间切换——本项目只有深色主题
-- ❌ 禁止使用内联 `style` 属性定义视觉样式（逻辑计算的动态样式除外）
+- ❌ 禁止 `style="color: ..."` 硬编码颜色
+- ❌ 禁止随意引入新的 UI 组件库（已有 TailwindCSS 够用）
+- ❌ 禁止霓虹渐变（`from-pink-500 to-violet-500` 这种）
+- ❌ 禁止大量 emoji 装饰（仅状态图标可用，不超过 1 个/行）
+- ❌ 禁止 `!important`
+- ❌ 禁止在组件内写 `<style>` 块（除非 scoped 且必要）
