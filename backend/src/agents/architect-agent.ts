@@ -16,10 +16,23 @@ export async function runArchitectAgent(adapter: ModelAdapter, ctx: TaskContext)
   emitToTask({ type: 'agent_start', taskId, agent: 'architect' })
   logger.info('Architect Agent started', { taskId })
 
+  const techStackSummary = `frontend: ${techStack.frontend}, backend: ${techStack.backend}`
+  const featureSummary = features.length > 0
+    ? (features as Array<{ name?: string }>).slice(0, 5).map(f => f.name ?? String(f)).join(' / ')
+    : '(待PM分析)'
+
   // Stream status text to client
   const streamMessages = [
-    { role: 'system' as const, content: 'You are an architect agent. Design architecture and file manifest.' },
-    { role: 'user' as const, content: `架构设计: ${requirement}` },
+    {
+      role: 'system' as const,
+      content: `You are an Architect agent — step 2 in a 4-agent pipeline (PM → Architect → Engineer → QA).
+Your job: design the system architecture and produce a file manifest.
+Task context: requirement="${requirement}", tech stack=${techStackSummary}.`,
+    },
+    {
+      role: 'user' as const,
+      content: `架构设计: ${requirement}\n[PM已确认功能]: ${featureSummary}`,
+    },
   ]
 
   for await (const chunk of adapter.stream(streamMessages)) {
@@ -30,11 +43,13 @@ export async function runArchitectAgent(adapter: ModelAdapter, ctx: TaskContext)
   const completeMessages = [
     {
       role: 'system' as const,
-      content: 'You are an architect agent. Return a JSON with file manifest and architecture details. Design the file manifest carefully.',
+      content: `You are an Architect agent — step 2 in a 4-agent pipeline (PM → Architect → Engineer → QA).
+Your job: design the system architecture and return a JSON file manifest.
+Task context: requirement="${requirement}", tech stack: frontend=${techStack.frontend}, backend=${techStack.backend}.`,
     },
     {
       role: 'user' as const,
-      content: `设计系统架构，返回文件清单 JSON:\n需求: ${requirement}\n技术栈: ${JSON.stringify(techStack)}\n功能列表: ${JSON.stringify(features)}`,
+      content: `设计系统架构，返回文件清单 JSON:\n需求: ${requirement}\n技术栈: ${JSON.stringify(techStack)}\n\n--- 上下文摘要 ---\n[PM已确认功能]: ${featureSummary}\n-----------------\n\n请基于以上功能列表设计文件清单。`,
     },
   ]
 

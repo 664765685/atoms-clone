@@ -15,6 +15,9 @@ export async function runEngineerAgent(adapter: ModelAdapter, ctx: TaskContext):
   emitToTask({ type: 'agent_start', taskId, agent: 'engineer' })
   logger.info('Engineer Agent started', { taskId, fileCount: fileManifest.length })
 
+  const techStackSummary = `frontend: ${techStack.frontend}, backend: ${techStack.backend}`
+  const manifestSummary = fileManifest.map(f => f.path).join(', ')
+
   for (const fileEntry of fileManifest) {
     logger.info('Engineer Agent generating file', { taskId, path: fileEntry.path })
 
@@ -22,11 +25,13 @@ export async function runEngineerAgent(adapter: ModelAdapter, ctx: TaskContext):
     const streamMessages = [
       {
         role: 'system' as const,
-        content: 'You are an engineer agent. Implement and generate file code.',
+        content: `You are an Engineer agent — step 3 in a 4-agent pipeline (PM → Architect → Engineer → QA).
+Your job: implement the code files designed by the Architect.
+Task context: requirement="${requirement}", tech stack=${techStackSummary}.`,
       },
       {
         role: 'user' as const,
-        content: `生成文件: ${fileEntry.path}`,
+        content: `生成文件: ${fileEntry.path}\n[Architect规划的完整文件清单]: ${manifestSummary}`,
       },
     ]
 
@@ -38,11 +43,13 @@ export async function runEngineerAgent(adapter: ModelAdapter, ctx: TaskContext):
     const completeMessages = [
       {
         role: 'system' as const,
-        content: 'You are an engineer agent. Implement the specified file. Return a JSON with path, language, and content. Generate the implementation.',
+        content: `You are an Engineer agent — step 3 in a 4-agent pipeline (PM → Architect → Engineer → QA).
+Your job: implement the specified file and return a JSON with path, language, and content.
+Task context: requirement="${requirement}", tech stack: frontend=${techStack.frontend}, backend=${techStack.backend}.`,
       },
       {
         role: 'user' as const,
-        content: `实现以下文件，返回 JSON:\n文件路径: ${fileEntry.path}\n文件用途: ${fileEntry.purpose}\n需求: ${requirement}\n技术栈: ${JSON.stringify(techStack)}`,
+        content: `实现以下文件，返回 JSON:\n文件路径: ${fileEntry.path}\n文件用途: ${fileEntry.purpose}\n需求: ${requirement}\n技术栈: ${JSON.stringify(techStack)}\n\n--- 上下文摘要 ---\n[Architect规划文件清单]: ${manifestSummary}\n-----------------`,
       },
     ]
 

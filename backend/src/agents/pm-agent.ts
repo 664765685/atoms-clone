@@ -10,8 +10,14 @@ export async function runPMAgent(adapter: ModelAdapter, ctx: TaskContext): Promi
   logger.info('PM Agent started', { taskId })
 
   // Stream status text to client
+  const techStackSummary = `frontend: ${techStack.frontend}, backend: ${techStack.backend}`
   const streamMessages = [
-    { role: 'system' as const, content: 'You are a PM (product manager) agent. Analyze requirements and identify features.' },
+    {
+      role: 'system' as const,
+      content: `You are a PM (Product Manager) agent — the first step in a 4-agent pipeline (PM → Architect → Engineer → QA).
+Your job: analyze the user requirement and identify core features.
+Task context: requirement="${requirement}", tech stack=${techStackSummary}.`,
+    },
     { role: 'user' as const, content: `功能分析: ${requirement}` },
   ]
 
@@ -23,7 +29,9 @@ export async function runPMAgent(adapter: ModelAdapter, ctx: TaskContext): Promi
   const completeMessages = [
     {
       role: 'system' as const,
-      content: 'You are a PM (product manager) agent. Return a JSON feature list.',
+      content: `You are a PM (Product Manager) agent — the first step in a 4-agent pipeline (PM → Architect → Engineer → QA).
+Your job: analyze the user requirement and return a structured feature list JSON.
+Task context: requirement="${requirement}", tech stack: frontend=${techStack.frontend}, backend=${techStack.backend}.`,
     },
     {
       role: 'user' as const,
