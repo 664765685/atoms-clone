@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '../components/AppLayout.vue'
 import FileTree from '../components/FileTree.vue'
 import CodePreview from '../components/CodePreview.vue'
+import PreviewPane from '../components/PreviewPane.vue'
 import { useSocket } from '../composables/useSocket'
 import type { SocketCleanup } from '../composables/useSocket'
 import type { Task, GeneratedFile, AgentRole } from '../types'
@@ -59,6 +60,16 @@ const currentAgentRole = ref<AgentRole | null>(null)
 const currentStep = computed<AgentStep | null>(
   () => agentSteps.value.find((s) => s.role === currentAgentRole.value) ?? null
 )
+
+// ─── 右侧标签 ────────────────────────────────────────────────
+
+/** 右侧区域激活标签 */
+const activeRightTab = ref<'code' | 'preview'>('code')
+
+/** 判断是否可预览（有 index.html 即可） */
+function canPreview(fileList: GeneratedFile[]): boolean {
+  return fileList.some((f) => f.path.replace(/^\//, '').endsWith('index.html'))
+}
 
 // ─── 视图模式 ────────────────────────────────────────────────
 
@@ -443,13 +454,49 @@ onUnmounted(() => {
           <p class="text-sm">代码生成完成后可在此预览</p>
         </div>
 
-        <!-- 完成：CodePreview -->
-        <CodePreview
-          v-else-if="isDoneView"
-          :content="selectedFile?.content ?? ''"
-          :language="selectedFile?.language ?? ''"
-          :path="selectedPath"
-        />
+        <!-- 完成：标签栏 + 内容区 -->
+        <template v-else-if="isDoneView">
+          <!-- 标签栏 -->
+          <div class="flex-shrink-0 flex items-center bg-gray-900 border-b border-gray-800">
+            <!-- 代码标签 -->
+            <button
+              class="px-4 py-2.5 text-sm font-medium transition-colors border-b-2"
+              :class="activeRightTab === 'code'
+                ? 'text-violet-400 border-violet-400'
+                : 'text-gray-500 hover:text-gray-300 border-transparent'"
+              @click="activeRightTab = 'code'"
+            >
+              代码
+            </button>
+            <!-- 预览标签 -->
+            <button
+              class="px-4 py-2.5 text-sm font-medium transition-colors border-b-2"
+              :class="[
+                activeRightTab === 'preview'
+                  ? 'text-violet-400 border-violet-400'
+                  : 'text-gray-500 hover:text-gray-300 border-transparent',
+                !canPreview(files) ? 'pointer-events-none opacity-40' : '',
+              ]"
+              :title="!canPreview(files) ? '该项目不包含 index.html，无法在浏览器预览' : undefined"
+              @click="activeRightTab = 'preview'"
+            >
+              预览
+            </button>
+          </div>
+
+          <!-- 代码面板 -->
+          <CodePreview
+            v-if="activeRightTab === 'code'"
+            :content="selectedFile?.content ?? ''"
+            :language="selectedFile?.language ?? ''"
+            :path="selectedPath"
+          />
+
+          <!-- 预览面板 -->
+          <div v-else-if="activeRightTab === 'preview'" class="flex-1 overflow-hidden">
+            <PreviewPane :files="files" />
+          </div>
+        </template>
       </div>
     </div>
   </AppLayout>
