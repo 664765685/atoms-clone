@@ -16,10 +16,16 @@ export async function runEngineerAgent(adapter: ModelAdapter, ctx: TaskContext):
   logger.info('Engineer Agent started', { taskId, fileCount: fileManifest.length })
 
   const techStackSummary = `frontend: ${techStack.frontend}, backend: ${techStack.backend}`
-  const manifestSummary = fileManifest.map(f => f.path).join(', ')
+  const fullManifest = fileManifest.map(f => f.path).join(', ')
 
   for (const fileEntry of fileManifest) {
     logger.info('Engineer Agent generating file', { taskId, path: fileEntry.path })
+
+    // Dynamic context: snapshot of generated vs pending at this moment
+    const alreadyGenerated = ctx.generatedFiles.map(f => f.path).join(', ') || '(首个文件，无前置依赖)'
+    const remaining = fileManifest
+      .filter(f => !ctx.generatedFiles.find(g => g.path === f.path) && f.path !== fileEntry.path)
+      .map(f => f.path).join(', ') || '(无，这是最后一个文件)'
 
     // Stream generation progress for this file
     const streamMessages = [
@@ -31,7 +37,7 @@ Task context: requirement="${requirement}", tech stack=${techStackSummary}.`,
       },
       {
         role: 'user' as const,
-        content: `生成文件: ${fileEntry.path}\n[Architect规划的完整文件清单]: ${manifestSummary}`,
+        content: `生成文件: ${fileEntry.path}\n[已生成]: ${alreadyGenerated}\n[当前任务]: ${fileEntry.path}\n[待生成]: ${remaining}`,
       },
     ]
 
@@ -49,7 +55,7 @@ Task context: requirement="${requirement}", tech stack: frontend=${techStack.fro
       },
       {
         role: 'user' as const,
-        content: `实现以下文件，返回 JSON:\n文件路径: ${fileEntry.path}\n文件用途: ${fileEntry.purpose}\n需求: ${requirement}\n技术栈: ${JSON.stringify(techStack)}\n\n--- 上下文摘要 ---\n[Architect规划文件清单]: ${manifestSummary}\n-----------------`,
+        content: `实现以下文件，返回 JSON:\n文件路径: ${fileEntry.path}\n文件用途: ${fileEntry.purpose}\n需求: ${requirement}\n技术栈: ${JSON.stringify(techStack)}\n\n--- 上下文摘要 ---\n[Architect规划全部文件]: ${fullManifest}\n[已生成]: ${alreadyGenerated}\n[当前任务]: ${fileEntry.path}\n[待生成]: ${remaining}\n-----------------`,
       },
     ]
 
