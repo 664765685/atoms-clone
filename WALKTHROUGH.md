@@ -23,7 +23,7 @@
 | M3 前端完整体验 | ✅ Done | 2026-04-26 | useSocket.ts，FileTree.vue，CodePreview.vue（Monaco loader），TaskDetailPage 完整重写 |
 | M4 GitHub 推送 | ✅ Done | 2026-04-26 | PAT 方式自动创建仓库并推送，Settings 页 githubUsername，commit 6b5501d |
 | M5 真实模型接入 | ✅ Done | 2026-04-26 | OpenAI/Claude/CatPaw adapter 激活，Settings 页切换，commit 14a8732 |
-| M6 集成打磨 | 🔄 In Progress | — | 端到端联调，Bug 修复，UX 细化 |
+| M6 集成打磨 | 🔄 In Progress | — | 端到端联调，Bug 修复，UX 细化；iframe 预览已实现（commit b7b840e） |
 
 ---
 
@@ -141,3 +141,4 @@ Engineer Agent    → 输出: generatedFiles[] (每个文件触发 file_created)
 |------|----------|
 | 2026-04-26 09:40 | 初次创建，基于 M2 完成状态 |
 | 2026-04-26 09:44 | M3 完成：useSocket.ts / FileTree.vue / CodePreview.vue / TaskDetailPage.vue 完整重写 |
+| 2026-04-26 10:27 | M6：iframe 沙箱预览实现，新增 PreviewPane.vue，TaskDetailPage 右侧加「代码/预览」标签切换，commit b7b840e |
