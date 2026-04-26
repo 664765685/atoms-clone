@@ -7,8 +7,8 @@
 
 ## 当前状态
 
-- **当前里程碑：** M5 — 真实模型接入
-- **上一个完成：** M4 — GitHub 推送（commit: 6b5501d）
+- **当前里程碑：** M6 — 集成打磨
+- **上一个完成：** M5 — 真实模型接入（commit: 14a8732）
 - **阻塞：** 无
 - **待决策：** 无
 
@@ -22,8 +22,8 @@
 | M2 Mock Agent 流水线 | ✅ Done | 2026-04-26 | MockAdapter 流式，4 Agent 顺序流水线，E2E 验证，commit 4dee810 |
 | M3 前端完整体验 | ✅ Done | 2026-04-26 | useSocket.ts，FileTree.vue，CodePreview.vue（Monaco loader），TaskDetailPage 完整重写 |
 | M4 GitHub 推送 | ✅ Done | 2026-04-26 | PAT 方式自动创建仓库并推送，Settings 页 githubUsername，commit 6b5501d |
-| M5 真实模型接入 | 🔄 In Progress | — | OpenAI/Claude/CatPaw adapter 激活，Settings 页切换 |
-| M6 集成打磨 | ⏳ Pending | — | 端到端联调，Bug 修复，UX 细化 |
+| M5 真实模型接入 | ✅ Done | 2026-04-26 | OpenAI/Claude/CatPaw adapter 激活，Settings 页切换，commit 14a8732 |
+| M6 集成打磨 | 🔄 In Progress | — | 端到端联调，Bug 修复，UX 细化 |
 
 ---
 
@@ -59,6 +59,23 @@
 - [x] `frontend/src/api/settings.ts` — UpdateSettingsPayload 加入 `githubUsername`
 - [x] `frontend/src/pages/SettingsPage.vue` — 新增 GitHub 用户名输入框，保存时同步写入
 - [x] `frontend/src/pages/TaskDetailPage.vue` — 完成状态 Header 新增"推送到 GitHub"按钮；推送中 loading；推送成功显示仓库链接；推送失败显示错误提示
+- [x] `pnpm build` 0 error 通过
+
+---
+
+## M5 完成清单（✅ 全部完成）
+
+### 后端
+- [x] `backend/src/db/migrate.ts` — Settings 表新增 `modelApiKey`、`modelBaseUrl` 列（幂等 ALTER TABLE 兜底）
+- [x] `backend/src/types/index.ts` — Settings 类型加入 `modelApiKey`、`modelBaseUrl`
+- [x] `backend/src/routes/settings.ts` — GET/PATCH 支持 `modelApiKey`、`modelBaseUrl` 字段读写；GET 返回 `hasModelApiKey`、`modelBaseUrl`
+- [x] `backend/src/adapters/factory.ts` — 新增 `createAdapterFromDb()` 异步函数，从 DB 读取 provider/apiKey/baseUrl/modelName，自动选择 Mock/OpenAI/Claude adapter
+- [x] `backend/src/agents/orchestrator.ts` — 改用 `createAdapterFromDb()` 异步调用
+
+### 前端
+- [x] `frontend/src/types/index.ts` — Settings 类型加入 `modelBaseUrl`、`hasModelApiKey`，provider 改为宽松 `string`
+- [x] `frontend/src/api/settings.ts` — `UpdateSettingsPayload` 加入 `modelApiKey`、`modelBaseUrl`
+- [x] `frontend/src/pages/SettingsPage.vue` — 新增卡片式 Provider 选择器（Mock/OpenAI Compatible/Claude），条件显示 API Key/Base URL/模型名称字段；保存时同步写入
 - [x] `pnpm build` 0 error 通过
 
 ---
