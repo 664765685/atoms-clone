@@ -7,8 +7,8 @@
 
 ## 当前状态
 
-- **当前里程碑：** M4 — GitHub 推送
-- **上一个完成：** M3 — 前端完整体验（commit: TBD after push）
+- **当前里程碑：** M5 — 真实模型接入
+- **上一个完成：** M4 — GitHub 推送（commit: 6b5501d）
 - **阻塞：** 无
 - **待决策：** 无
 
@@ -21,8 +21,8 @@
 | M1 骨架搭建 | ✅ Done | 2026-04-26 | 后端 Fastify+SQLite+Socket.io，前端 Vue3+Vite+TailwindCSS，4个页面，GitHub 推送 |
 | M2 Mock Agent 流水线 | ✅ Done | 2026-04-26 | MockAdapter 流式，4 Agent 顺序流水线，E2E 验证，commit 4dee810 |
 | M3 前端完整体验 | ✅ Done | 2026-04-26 | useSocket.ts，FileTree.vue，CodePreview.vue（Monaco loader），TaskDetailPage 完整重写 |
-| M4 GitHub 推送 | ⏳ Pending | — | PAT 方式自动创建仓库并推送 |
-| M5 真实模型接入 | ⏳ Pending | — | OpenAI/Claude/CatPaw adapter 激活，Settings 页切换 |
+| M4 GitHub 推送 | ✅ Done | 2026-04-26 | PAT 方式自动创建仓库并推送，Settings 页 githubUsername，commit 6b5501d |
+| M5 真实模型接入 | 🔄 In Progress | — | OpenAI/Claude/CatPaw adapter 激活，Settings 页切换 |
 | M6 集成打磨 | ⏳ Pending | — | 端到端联调，Bug 修复，UX 细化 |
 
 ---
@@ -41,6 +41,25 @@
 
 ### 后端
 - [x] `/api/tasks/:id/files` 返回 content 字段，与前端对齐（无需修改）
+
+---
+
+---
+
+## M4 完成清单（✅ 全部完成）
+
+### 后端
+- [x] `backend/src/db/migrate.ts` — Settings 表新增 `githubUsername` 列（含幂等 ALTER TABLE 兜底）
+- [x] `backend/src/types/index.ts` — Settings 类型加入 `githubUsername`
+- [x] `backend/src/routes/settings.ts` — 移除 `@octokit/rest`，改用 native `fetch`；PATCH 支持 `githubUsername`；GET 返回 `githubUsername`
+- [x] `backend/src/routes/tasks.ts` — 实现 `POST /api/tasks/:id/push`：创建 GitHub 仓库 + 逐文件上传（base64），幂等，完成后更新 Task.githubRepo/githubCommit，返回 `{ repoUrl, commitUrl }`
+
+### 前端
+- [x] `frontend/src/types/index.ts` — Settings 类型加入 `githubUsername`
+- [x] `frontend/src/api/settings.ts` — UpdateSettingsPayload 加入 `githubUsername`
+- [x] `frontend/src/pages/SettingsPage.vue` — 新增 GitHub 用户名输入框，保存时同步写入
+- [x] `frontend/src/pages/TaskDetailPage.vue` — 完成状态 Header 新增"推送到 GitHub"按钮；推送中 loading；推送成功显示仓库链接；推送失败显示错误提示
+- [x] `pnpm build` 0 error 通过
 
 ---
 
