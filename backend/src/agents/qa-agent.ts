@@ -21,21 +21,6 @@ export async function runQAAgent(adapter: ModelAdapter, ctx: TaskContext): Promi
   const manifestSummary = fileManifest.map(f => f.path).join(', ') || '(无)'
   const generatedPaths = generatedFiles.map(f => f.path).join(', ')
 
-  // Build condensed file snapshots: first 20 lines + size info, not full content
-  const PREVIEW_LINES = 20
-  const fileSnapshots = generatedFiles.map((f) => {
-    const lines = f.content.split('\n')
-    const preview = lines.slice(0, PREVIEW_LINES).join('\n')
-    const truncated = lines.length > PREVIEW_LINES
-    return [
-      `### ${f.path} (${f.language}, ${lines.length} lines)`,
-      '```',
-      preview,
-      truncated ? `... (${lines.length - PREVIEW_LINES} more lines omitted)` : '',
-      '```',
-    ].filter(Boolean).join('\n')
-  }).join('\n\n')
-
   // Stream status text to client
   const streamMessages = [
     {
@@ -54,35 +39,64 @@ Task context: requirement="${requirement}", tech stack=${techStackSummary}.`,
     emitToTask({ type: 'agent_chunk', taskId, agent: 'qa', chunk })
   }
 
-  // Get structured output
-  const completeMessages = [
+  // Phase 1: review each file individually with full content
+  const fileIssues: QAIssue[] = []
+  for (const file of generatedFiles) {
+    logger.info('QA Agent reviewing file', { taskId, path: file.path })
+
+    const fileCompleteMessages = [
+      {
+        role: 'system' as const,
+        content: `You are a QA agent — the final step in a 4-agent pipeline (PM → Architect → Engineer → QA).
+Your job: review a single file for quality, correctness, and alignment with the original requirement.
+Task context: requirement="${requirement}", tech stack: frontend=${techStack.frontend}, backend=${techStack.backend}.
+Project file manifest: ${manifestSummary}.`,
+      },
+      {
+        role: 'user' as const,
+        content: `审查以下文件，返回 JSON { issues: [{severity, file, description}] }，无问题则返回 { issues: [] }:\n\n### ${file.path} (${file.language})\n\`\`\`${file.language}\n${file.content}\n\`\`\`\n\n需求: ${requirement}`,
+      },
+    ]
+
+    try {
+      const raw = await adapter.complete(fileCompleteMessages)
+      const parsed = JSON.parse(raw) as QAOutput
+      if (parsed.issues?.length) {
+        fileIssues.push(...parsed.issues)
+      }
+    } catch (err) {
+      logger.warn('QA Agent failed to parse file review JSON', { taskId, path: file.path, err })
+    }
+  }
+
+  // Phase 2: aggregate all file issues into a final summary
+  const aggregateMessages = [
     {
       role: 'system' as const,
       content: `You are a QA agent — the final step in a 4-agent pipeline (PM → Architect → Engineer → QA).
-Your job: review generated files and return a JSON with issues and summary.
-Task context: requirement="${requirement}", tech stack: frontend=${techStack.frontend}, backend=${techStack.backend}.`,
+Your job: aggregate per-file review results into a final quality report.
+Task context: requirement="${requirement}", tech stack=${techStackSummary}.`,
     },
     {
       role: 'user' as const,
-      content: `对以下生成的文件进行质量审查，结合原始需求「${requirement}」检查是否实现完整，返回 issue 列表 JSON:\n\n--- 上下文摘要 ---\n[PM确认功能]: ${featureSummary}\n[Architect规划文件清单]: ${manifestSummary}\n[Engineer已生成文件]: ${generatedPaths}\n-----------------\n\n--- 文件内容摘要（每个文件前 ${PREVIEW_LINES} 行）---\n${fileSnapshots}`,
+      content: `汇总以下逐文件审查结果，返回最终 JSON { issues: [{severity, file, description}], summary: string }:\n\n--- 上下文摘要 ---\n[PM确认功能]: ${featureSummary}\n[Engineer已生成文件]: ${generatedPaths}\n-----------------\n\n逐文件 issue 清单:\n${JSON.stringify(fileIssues, null, 2)}`,
     },
   ]
 
-  const raw = await adapter.complete(completeMessages)
+  const raw = await adapter.complete(aggregateMessages)
 
   try {
     const parsed = JSON.parse(raw) as QAOutput
-    ctx.qaIssues = parsed.issues ?? []
+    ctx.qaIssues = parsed.issues ?? fileIssues  // fallback to per-file issues if aggregate fails
 
-    // Emit each issue as a chunk
     if (parsed.summary) {
       emitToTask({ type: 'agent_chunk', taskId, agent: 'qa', chunk: parsed.summary })
     }
 
     logger.info('QA Agent parsed issues', { taskId, issueCount: ctx.qaIssues.length })
   } catch (err) {
-    logger.warn('QA Agent failed to parse JSON, using empty issues', { taskId, err })
-    ctx.qaIssues = []
+    logger.warn('QA Agent failed to parse aggregate JSON, using per-file issues', { taskId, err })
+    ctx.qaIssues = fileIssues
   }
 
   emitToTask({ type: 'agent_done', taskId, agent: 'qa' })
