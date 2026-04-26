@@ -29,7 +29,9 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
       data: {
         modelProvider: row.modelProvider,
         modelName: row.modelName,
+        modelBaseUrl: row.modelBaseUrl ?? '',
         hasApiKey: Boolean(row.apiKey && row.apiKey !== ''),
+        hasModelApiKey: Boolean(row.modelApiKey && row.modelApiKey !== ''),
         hasGithubToken: Boolean(row.githubToken && row.githubToken !== ''),
         githubUsername: row.githubUsername ?? '',
       },
@@ -41,13 +43,15 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
    * Update settings fields
    */
   app.patch('/api/settings', async (req, reply) => {
-    const body = req.body as Partial<Pick<Settings, 'modelProvider' | 'modelName' | 'apiKey' | 'githubToken' | 'githubUsername'>>
+    const body = req.body as Partial<Pick<Settings, 'modelProvider' | 'modelName' | 'apiKey' | 'modelApiKey' | 'modelBaseUrl' | 'githubToken' | 'githubUsername'>>
     const fields: string[] = []
     const values: unknown[] = []
 
     if (body.modelProvider !== undefined) { fields.push('modelProvider = ?'); values.push(body.modelProvider) }
     if (body.modelName !== undefined) { fields.push('modelName = ?'); values.push(body.modelName) }
     if (body.apiKey !== undefined) { fields.push('apiKey = ?'); values.push(body.apiKey) }
+    if (body.modelApiKey !== undefined) { fields.push('modelApiKey = ?'); values.push(body.modelApiKey) }
+    if (body.modelBaseUrl !== undefined) { fields.push('modelBaseUrl = ?'); values.push(body.modelBaseUrl) }
     if (body.githubToken !== undefined) { fields.push('githubToken = ?'); values.push(body.githubToken) }
     if (body.githubUsername !== undefined) { fields.push('githubUsername = ?'); values.push(body.githubUsername) }
 

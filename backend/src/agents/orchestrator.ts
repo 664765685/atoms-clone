@@ -1,13 +1,12 @@
 import { getDb } from '../db/client.js'
 import { emitToTask } from '../websocket/index.js'
 import { logger } from '../utils/logger.js'
-import { createAdapter } from '../adapters/factory.js'
+import { createAdapterFromDb } from '../adapters/factory.js'
 import { TaskContext } from './context.js'
 import { runPMAgent } from './pm-agent.js'
 import { runArchitectAgent } from './architect-agent.js'
 import { runEngineerAgent } from './engineer-agent.js'
 import { runQAAgent } from './qa-agent.js'
-import type { Settings } from '../types/index.js'
 
 /**
  * Run the full agent pipeline for a given task.
@@ -34,22 +33,10 @@ export async function runPipeline(taskId: string): Promise<void> {
       techStack: String(taskRow['techStack']),
     }
 
-    // 2. Read settings (provider/apiKey)
-    const settingsResult = await db.execute('SELECT modelProvider, modelName, apiKey FROM Settings WHERE id = 1')
-    const settingsRow = settingsResult.rows[0] as unknown as Settings | undefined
+    // 2. Create adapter from DB settings (handles provider selection and fallback)
+    const adapter = await createAdapterFromDb()
 
-    const provider = settingsRow?.modelProvider ?? 'mock'
-    const modelName = settingsRow?.modelName ?? 'mock'
-    const apiKey = settingsRow?.apiKey ?? ''
-
-    // 3. Create adapter (fall back to mock if no API key configured)
-    const adapter = createAdapter({
-      provider: apiKey ? provider : 'mock',
-      modelName,
-      apiKey,
-    })
-
-    logger.info('Pipeline starting', { taskId, provider, modelName })
+    logger.info('Pipeline starting', { taskId })
 
     // Mark task as running
     await db.execute({

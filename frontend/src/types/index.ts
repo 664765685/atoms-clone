@@ -38,9 +38,11 @@ export type AgentLog = {
 
 /** 应用设置 */
 export type Settings = {
-  modelProvider: 'catpaw' | 'claude' | 'openai'
+  modelProvider: string
   modelName: string
+  modelBaseUrl: string
   hasApiKey: boolean
+  hasModelApiKey: boolean
   hasGithubToken: boolean
   githubUsername: string
 }

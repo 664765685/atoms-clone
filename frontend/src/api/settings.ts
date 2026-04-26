@@ -3,8 +3,10 @@ import type { Settings } from '../types'
 
 /** 更新设置请求体 */
 type UpdateSettingsPayload = {
-  modelProvider?: 'catpaw' | 'claude' | 'openai'
+  modelProvider?: string
   modelName?: string
+  modelApiKey?: string
+  modelBaseUrl?: string
   apiKey?: string
   githubToken?: string
   githubUsername?: string

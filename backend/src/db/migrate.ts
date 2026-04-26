@@ -57,5 +57,19 @@ export async function runMigrations(): Promise<void> {
     // Column already exists — safe to ignore
   }
 
+  // Migration: add model provider config columns (M5)
+  try {
+    await db.execute(`ALTER TABLE Settings ADD COLUMN modelApiKey TEXT NOT NULL DEFAULT ''`)
+    logger.info('Migration: added modelApiKey column to Settings')
+  } catch {
+    // Column already exists — safe to ignore
+  }
+  try {
+    await db.execute(`ALTER TABLE Settings ADD COLUMN modelBaseUrl TEXT NOT NULL DEFAULT ''`)
+    logger.info('Migration: added modelBaseUrl column to Settings')
+  } catch {
+    // Column already exists — safe to ignore
+  }
+
   logger.info('Database migrations completed')
 }

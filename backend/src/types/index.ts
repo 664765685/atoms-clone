@@ -20,6 +20,8 @@ export type Settings = {
   modelProvider: string
   modelName: string
   apiKey: string
+  modelApiKey: string
+  modelBaseUrl: string
   githubToken: string
   githubUsername: string
 }
