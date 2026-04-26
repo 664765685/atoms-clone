@@ -67,6 +67,17 @@
             {{ githubTestResult.valid ? `✓ 验证成功，用户：${githubTestResult.username}` : '✗ Token 无效' }}
           </p>
         </div>
+
+        <div>
+          <label class="block text-sm text-secondary mb-2">GitHub 用户名</label>
+          <input
+            v-model="form.githubUsername"
+            type="text"
+            placeholder="your-github-username"
+            class="w-full bg-elevated border border-border-default rounded-md px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent"
+          />
+          <p class="text-xs text-secondary mt-1">推送到 GitHub 时使用此用户名创建仓库</p>
+        </div>
       </div>
     </div>
 
@@ -94,6 +105,7 @@ const form = ref({
   modelName: 'catclaw-proxy-model',
   apiKey: '',
   githubToken: '',
+  githubUsername: '',
 })
 
 const saving = ref(false)
@@ -105,6 +117,7 @@ onMounted(async () => {
   const settings = await getSettings()
   form.value.modelProvider = settings.modelProvider
   form.value.modelName = settings.modelName
+  form.value.githubUsername = settings.githubUsername ?? ''
 })
 
 async function save() {
@@ -114,6 +127,7 @@ async function save() {
     const payload: Record<string, string> = {
       modelProvider: form.value.modelProvider,
       modelName: form.value.modelName,
+      githubUsername: form.value.githubUsername,
     }
     if (form.value.apiKey) payload['apiKey'] = form.value.apiKey
     if (form.value.githubToken) payload['githubToken'] = form.value.githubToken

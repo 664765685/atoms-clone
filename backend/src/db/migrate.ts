@@ -14,7 +14,8 @@ export async function runMigrations(): Promise<void> {
       modelProvider TEXT NOT NULL DEFAULT 'catpaw',
       modelName TEXT NOT NULL DEFAULT 'catclaw-proxy-model',
       apiKey TEXT NOT NULL DEFAULT '',
-      githubToken TEXT NOT NULL DEFAULT ''
+      githubToken TEXT NOT NULL DEFAULT '',
+      githubUsername TEXT NOT NULL DEFAULT ''
     )`,
     `INSERT OR IGNORE INTO Settings (id) VALUES (1)`,
     `CREATE TABLE IF NOT EXISTS Task (
@@ -46,6 +47,15 @@ export async function runMigrations(): Promise<void> {
       FOREIGN KEY (taskId) REFERENCES Task(id)
     )`,
   ], 'write')
+
+  // Migration: add githubUsername column to existing databases that pre-date this column.
+  // ALTER TABLE ADD COLUMN fails if the column already exists, so we ignore that error.
+  try {
+    await db.execute(`ALTER TABLE Settings ADD COLUMN githubUsername TEXT NOT NULL DEFAULT ''`)
+    logger.info('Migration: added githubUsername column to Settings')
+  } catch {
+    // Column already exists — safe to ignore
+  }
 
   logger.info('Database migrations completed')
 }

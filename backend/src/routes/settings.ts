@@ -1,9 +1,13 @@
 import type { FastifyInstance } from 'fastify'
-import { Octokit } from '@octokit/rest'
 import { getDb } from '../db/client.js'
 import { AppError } from '../utils/errors.js'
 import { logger } from '../utils/logger.js'
 import type { Settings } from '../types/index.js'
+
+/** GitHub user API response (partial) */
+type GitHubUser = {
+  login: string
+}
 
 /**
  * Settings routes plugin
@@ -27,6 +31,7 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
         modelName: row.modelName,
         hasApiKey: Boolean(row.apiKey && row.apiKey !== ''),
         hasGithubToken: Boolean(row.githubToken && row.githubToken !== ''),
+        githubUsername: row.githubUsername ?? '',
       },
     })
   })
@@ -36,7 +41,7 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
    * Update settings fields
    */
   app.patch('/api/settings', async (req, reply) => {
-    const body = req.body as Partial<Pick<Settings, 'modelProvider' | 'modelName' | 'apiKey' | 'githubToken'>>
+    const body = req.body as Partial<Pick<Settings, 'modelProvider' | 'modelName' | 'apiKey' | 'githubToken' | 'githubUsername'>>
     const fields: string[] = []
     const values: unknown[] = []
 
@@ -44,6 +49,7 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
     if (body.modelName !== undefined) { fields.push('modelName = ?'); values.push(body.modelName) }
     if (body.apiKey !== undefined) { fields.push('apiKey = ?'); values.push(body.apiKey) }
     if (body.githubToken !== undefined) { fields.push('githubToken = ?'); values.push(body.githubToken) }
+    if (body.githubUsername !== undefined) { fields.push('githubUsername = ?'); values.push(body.githubUsername) }
 
     if (fields.length === 0) {
       throw new AppError('BAD_REQUEST', 'No fields to update', 400)
@@ -59,7 +65,7 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
 
   /**
    * POST /api/settings/test-github
-   * Validates a GitHub Personal Access Token
+   * Validates a GitHub Personal Access Token using the native fetch API
    */
   app.post('/api/settings/test-github', async (req, reply) => {
     const { token } = req.body as { token?: string }
@@ -67,9 +73,19 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
       throw new AppError('BAD_REQUEST', 'token is required', 400)
     }
     try {
-      const octokit = new Octokit({ auth: token })
-      const { data } = await octokit.users.getAuthenticated()
-      return reply.send({ success: true, data: { valid: true, username: data.login } })
+      const resp = await fetch('https://api.github.com/user', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'User-Agent': 'atoms-clone/1.0',
+        },
+      })
+      if (!resp.ok) {
+        return reply.send({ success: true, data: { valid: false, username: null } })
+      }
+      const user = await resp.json() as GitHubUser
+      return reply.send({ success: true, data: { valid: true, username: user.login } })
     } catch (err) {
       logger.warn('GitHub token validation failed', err)
       return reply.send({ success: true, data: { valid: false, username: null } })

@@ -21,6 +21,7 @@ export type Settings = {
   modelName: string
   apiKey: string
   githubToken: string
+  githubUsername: string
 }
 
 /** Task record */

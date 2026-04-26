@@ -42,6 +42,7 @@ export type Settings = {
   modelName: string
   hasApiKey: boolean
   hasGithubToken: boolean
+  githubUsername: string
 }
 
 /** Pipeline 事件类型 */

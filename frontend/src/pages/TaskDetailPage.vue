@@ -7,7 +7,7 @@ import CodePreview from '../components/CodePreview.vue'
 import { useSocket } from '../composables/useSocket'
 import type { SocketCleanup } from '../composables/useSocket'
 import type { Task, GeneratedFile, AgentRole } from '../types'
-import { getTask, getTaskFiles } from '../api/tasks'
+import { getTask, getTaskFiles, pushToGithub } from '../api/tasks'
 
 // ─── Route ──────────────────────────────────────────────────
 
@@ -149,6 +149,30 @@ function connectSocket() {
   })
 }
 
+// ─── GitHub 推送 ─────────────────────────────────────────────
+
+/** 推送中 loading 状态 */
+const isPushing = ref(false)
+/** 推送结果 */
+const pushResult = ref<{ repoUrl: string; commitUrl: string } | null>(null)
+/** 推送错误信息 */
+const pushError = ref<string | null>(null)
+
+/** 推送任务代码到 GitHub */
+async function handlePush() {
+  if (isPushing.value) return
+  isPushing.value = true
+  pushError.value = null
+  try {
+    const result = await pushToGithub(taskId.value)
+    pushResult.value = result
+  } catch (err) {
+    pushError.value = err instanceof Error ? err.message : '推送失败，请检查 GitHub 配置'
+  } finally {
+    isPushing.value = false
+  }
+}
+
 // ─── 下载 ZIP ────────────────────────────────────────────────
 
 /** 触发 blob 下载 */
@@ -232,6 +256,43 @@ onUnmounted(() => {
           {{ statusBadge.label }}
         </span>
       </div>
+
+      <!-- GitHub 推送按钮（完成后显示） -->
+      <template v-if="isDoneView">
+        <!-- 推送成功后显示仓库链接 -->
+        <a
+          v-if="pushResult"
+          :href="pushResult.repoUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          查看仓库
+        </a>
+        <!-- 推送按钮 -->
+        <button
+          v-else
+          :disabled="isPushing"
+          class="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+          @click="handlePush"
+        >
+          <svg v-if="isPushing" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+          </svg>
+          <svg v-else class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          {{ isPushing ? '推送中...' : '推送到 GitHub' }}
+        </button>
+        <!-- 推送错误提示 -->
+        <span v-if="pushError" class="text-xs text-red-400 flex-shrink-0 max-w-xs truncate" :title="pushError">
+          ⚠ {{ pushError }}
+        </span>
+      </template>
 
       <!-- 下载按钮（完成后显示） -->
       <button

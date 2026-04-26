@@ -7,6 +7,7 @@ type UpdateSettingsPayload = {
   modelName?: string
   apiKey?: string
   githubToken?: string
+  githubUsername?: string
 }
 
 /** API 成功响应包装 */
