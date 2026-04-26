@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '../components/AppLayout.vue'
 import FileTree from '../components/FileTree.vue'
@@ -208,13 +208,21 @@ async function handleDownload() {
 
 // ─── 生命周期 ────────────────────────────────────────────────
 
-onMounted(async () => {
+async function loadTask(id: string): Promise<void> {
+  // 清理上一个任务的 socket
+  socketCleanup?.()
+  socketCleanup = null
+
   isLoading.value = true
   loadError.value = null
+  task.value = null
+  files.value = []
+  selectedPath.value = ''
+
   try {
     const [fetchedTask, fetchedFiles] = await Promise.all([
-      getTask(taskId.value),
-      getTaskFiles(taskId.value),
+      getTask(id),
+      getTaskFiles(id),
     ])
     task.value = fetchedTask
     files.value = fetchedFiles
@@ -232,6 +240,13 @@ onMounted(async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+// 路由参数变化时重新加载（处理组件复用场景）
+watch(taskId, (id) => loadTask(id), { immediate: true })
+
+onMounted(() => {
+  // watch immediate 已处理初次加载，onMounted 仅保留以防万一
 })
 
 onUnmounted(() => {

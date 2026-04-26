@@ -1,5 +1,78 @@
 import type { ChatMessage, ModelAdapter } from './base.js'
 
+// ─── Frontend-only (no backend) templates ───────────────────────────────────
+
+const ARCHITECT_RESPONSE_FRONTEND = JSON.stringify({
+  fileManifest: [
+    { path: 'index.html', purpose: 'HTML 入口' },
+    { path: 'style.css', purpose: '全局样式' },
+    { path: 'main.js', purpose: '主逻辑' },
+  ],
+  notes: '纯前端项目，原生 HTML/CSS/JS，无需构建',
+})
+
+const ENGINEER_FILES_FRONTEND: Record<string, { language: string; content: string }> = {
+  'index.html': {
+    language: 'html',
+    content: `<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>应用</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <h1>🚀 应用</h1>
+    <div id="content"></div>
+    <button id="btn">点击我</button>
+    <p id="output"></p>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>`,
+  },
+  'style.css': {
+    language: 'css',
+    content: `body {
+  font-family: sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  background: #1a1a2e;
+  color: #fff;
+}
+#app {
+  text-align: center;
+  padding: 2rem;
+}
+button {
+  margin-top: 1rem;
+  padding: 10px 24px;
+  font-size: 15px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #6366f1;
+  color: #fff;
+}
+button:hover { background: #4f46e5; }`,
+  },
+  'main.js': {
+    language: 'javascript',
+    content: `var count = 0;
+document.getElementById('btn').addEventListener('click', function() {
+  count++;
+  document.getElementById('output').textContent = '点击次数: ' + count;
+});`,
+  },
+}
+
+// ─── Full-stack templates ────────────────────────────────────────────────────
+
 const PM_RESPONSE = JSON.stringify({
   features: [
     {
@@ -102,25 +175,43 @@ function detectAgentType(messages: ChatMessage[]): 'pm' | 'architect' | 'enginee
   return 'unknown'
 }
 
+/** Detect if this is a frontend-only task (no backend) */
+function isFrontendOnly(messages: ChatMessage[]): boolean {
+  const allContent = messages.map((m) => m.content).join(' ').toLowerCase()
+  return (
+    allContent.includes('"backend":"none"') ||
+    allContent.includes('"backend": "none"') ||
+    allContent.includes('backend: none') ||
+    allContent.includes('纯前端') ||
+    allContent.includes('pure frontend')
+  )
+}
+
 export class MockAdapter implements ModelAdapter {
   async complete(messages: ChatMessage[]): Promise<string> {
     // Simulate a small delay
     await sleep(200)
 
     const agentType = detectAgentType(messages)
+    const frontendOnly = isFrontendOnly(messages)
 
     // For engineer agent, check if a specific file path is mentioned
     if (agentType === 'engineer') {
       const userMsg = messages.find((m) => m.role === 'user')?.content ?? ''
+      const filePool = frontendOnly ? ENGINEER_FILES_FRONTEND : ENGINEER_FILES
       // Try to find which file to generate based on the path mentioned in user message
-      for (const [filePath, fileData] of Object.entries(ENGINEER_FILES)) {
+      for (const [filePath, fileData] of Object.entries(filePool)) {
         if (userMsg.includes(filePath)) {
           return JSON.stringify({ path: filePath, language: fileData.language, content: fileData.content })
         }
       }
       // Default to first file
-      const firstEntry = Object.entries(ENGINEER_FILES)[0]
+      const firstEntry = Object.entries(filePool)[0]
       return JSON.stringify({ path: firstEntry[0], language: firstEntry[1].language, content: firstEntry[1].content })
+    }
+
+    if (agentType === 'architect' && frontendOnly) {
+      return ARCHITECT_RESPONSE_FRONTEND
     }
 
     switch (agentType) {
