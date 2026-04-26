@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Settings {
+  id            Int    @id @default(1)
+  modelProvider String @default("catpaw")
+  modelName     String @default("catclaw-proxy-model")
+  apiKey        String @default("")
+  githubToken   String @default("")
+}
+
+model Task {
+  id           String          @id @default(cuid())
+  title        String
+  requirement  String
+  techStack    String
+  status       String          @default("pending")
+  errorMsg     String?
+  githubRepo   String?
+  githubCommit String?
+  createdAt    DateTime        @default(now())
+  finishedAt   DateTime?
+  files        GeneratedFile[]
+  logs         AgentLog[]
+}
+
+model GeneratedFile {
+  id       String @id @default(cuid())
+  taskId   String
+  task     Task   @relation(fields: [taskId], references: [id])
+  path     String
+  content  String
+  language String
+}
+
+model AgentLog {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id])
+  agentRole String
+  content   String
+  createdAt DateTime @default(now())
+}
